@@ -35,12 +35,23 @@ class Rect:
 
 # 僵尸
 # hp 默认270-70
-ZOMBIE_BODY_HP = {}
+ZOMBIE_BODY_HP = {zt.jac: 500 - 166, zt.ggt: 3000}
 # helm_hp 默认0
 ZOMBIE_HELM_HP = {zt.con: 370, zt.bkt: 1100}
 # vel   # RandRangeFloat(0.23f, 0.32f)
-ZOMBIE_VEL_MIN = {}
-ZOMBIE_VEL_MAX = {}
+ZOMBIE_VEL_MIN = {zt.jac: 0.66}
+ZOMBIE_VEL_MAX = {zt.jac: 0.68}
+# special_cd 默认0
+ZOMBIE_SPECIAL_CD = {zt.jac: 10}
+# phase 默认none
+ZOMBIE_PHASE = {zt.jac: 'running'}
+# rects
+ZOMBIE_RECT = {z: Rect(36, 0, 42, 115) for z in (zt.zom, zt.con, zt.bkt)} | \
+              {zt.ggt: Rect(-17, -38, 125, 154),
+               zt.jac: Rect(36, 0, 42, 115)}
+ZOMBIE_ATT_RECT = {z: Rect(20, 0, 50, 115) for z in (zt.zom, zt.con, zt.bkt)} | \
+                  {zt.ggt: Rect(-30, -38, 89, 154),
+                   zt.jac: Rect(20, 0, 50, 115)}
 
 @dataclass
 class Zombie:
@@ -48,11 +59,13 @@ class Zombie:
     row: int
     x: float
     y: float
-    hp: int = field(init=False)
+    hp     : int = field(init=False)
     helm_hp: int = field(init=False)
     v: Optional[float] = None  # inf, -inf 可以控制大小; None 取随机值; nan 取平均值
-    rect: Rect = field(init=False)
+    rect       : Rect = field(init=False)
     attack_rect: Rect = field(init=False)
+    special_cd : int  = field(init=False)
+    phase      : str  = field(init=False)
     chilled_cd: int = 0
     is_eating: bool = False
 
@@ -76,11 +89,15 @@ class Zombie:
             if not self.v or not a <= self.v <= b:
                 raise ValueError(f"{self.typ=} vel={self.v} not in {a=}, {b=}")
             self.v = float(self.v)
-        # 4. rect
-        x, y = self.x, self.y
-        self.rect = Rect(x + 36, y, 42, 115)
-        # 5. attack_rect
-        self.attack_rect = Rect(x + 50, y, 20, 115)
+        # 4. rects
+        self.update_rects()
+        # 5. phase
+        self.special_cd = ZOMBIE_SPECIAL_CD.get(self.typ, 0)
+        self.phase = ZOMBIE_PHASE.get(self.typ, 'none')
+
+    def update_rects(self):
+        self.rect        = ZOMBIE_RECT    [self.typ].get_moved(self.x, self.y)
+        self.attack_rect = ZOMBIE_ATT_RECT[self.typ].get_moved(self.x, self.y)
 
     def __post_init__(self) -> None:
         self.initiate_zombie()
@@ -177,6 +194,7 @@ class Vase(GridItem):
     vase_type: Literal['seed'] | Literal['zombie'] | Literal['sun']
     content: int  # pt.* or zt.* or -1
     transparent: bool = False
+    exist: bool = True
 
 
 # ============================================================================
@@ -191,9 +209,12 @@ BOARD_HEIGHT = 600
 
 A_REALLY_BIG_NUMBER = 100000000
 
-# 将网格坐标转换为像素坐标
-def grid_to_pixel(col, row):
-    return (col * CELL_W + LAWN_XMIN, row * CELL_H + LAWN_YMIN)
+# 网格坐标像素坐标转换
+def grid_to_pixel(col: int, row: int) -> tuple[float, float]:
+    return col * CELL_W + LAWN_XMIN, row * CELL_H + LAWN_YMIN
+
+def pixel_to_grid(x: float, y: float) -> tuple[int, int]:
+    return int((x - LAWN_XMIN) / CELL_W), int((y - LAWN_YMIN) / CELL_H)
 
 
 # ============================================================================
@@ -255,13 +276,3 @@ def GetCircleRectOverlap(x: float, y: float, r: float, rect: Rect) -> bool:
         return dx <= r
     else:  # 如果圆心仅在垂直方向上超出矩形
         return dy <= r
-
-
-def update_zombie_rects(z: Zombie):
-    """更新僵尸碰撞矩形（随 x 变化）"""
-    dx, dy, w, h = 36, 0, 42, 115
-    z.rect = Rect(z.x + dx, z.y + dy, w, h)
-
-    dx, dy, w, h = 20, 0, 50, 115
-    z.attack_rect = Rect(z.x + dx, z.y + dy, w, h)
-

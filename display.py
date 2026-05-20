@@ -9,7 +9,7 @@ import pygame
 from beach import *
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
-DISPLAY_SPEED = 2
+DISPLAY_SPEED = 1
 
 # 1. 初始化
 pygame.init()

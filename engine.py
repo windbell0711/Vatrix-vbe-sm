@@ -22,7 +22,8 @@ class VbGame:
         self.lose: bool = False
 
     def __str__(self) -> str:
-        return f"Game(\ntick={self.tick}, sun={self.sun},{' WIN' if self.win else ''}{' LOSE' if self.lose else ''}\nzombies=[{',\n         '.join(map(str, self.zombies))}],\nplants= [{',\n         '.join(map(str, self.plants))}]\n)"
+        return (f"Game(\ntick={self.tick}, sun={self.sun},{' WIN' if self.win else ''}{' LOSE' if self.lose else ''}\n"
+                f"zombies=[{',\n         '.join(map(str, self.zombies))}],\nplants= [{',\n         '.join(map(str, self.plants))}]\nvases=  [{',\n         '.join(map(str, self.vases))}]\n)")
 
     def spawn_plant(self, col: int, row: int, typ: int) -> Plant:
         """生成植物"""
@@ -51,15 +52,17 @@ class VbGame:
         self.zombies.append(zombie)
         return zombie
 
-    def kill_in_radius(self, obj: Iterable[Plant | Zombie], x: float, y: float, r: float, row: int,
-                       row_extend: int) -> None:
-        """在指定半径内击杀植物或僵尸"""
-        for o in obj:
-            if abs(o.row - row) <= row_extend and GetCircleRectOverlap(x, y, r, o.rect):
-                if isinstance(o, Plant | Zombie):
-                    o.hp = 0
-                else:
-                    raise ValueError(f"Unknown object type: {o}")
+    def kill_plants_in_radius(self, x: float, y: float, r: float) -> None:
+        """在指定半径内击杀植物"""
+        for p in self.plants:
+            if GetCircleRectOverlap(x, y, r, p.rect):
+                p.hp = 0
+
+    def kill_zombies_in_radius(self, x: float, y: float, r: float, row: int, row_extend: int) -> None:
+        """在指定半径内击杀植物"""
+        for z in self.zombies:
+            if abs(z.row - row) <= row_extend and GetCircleRectOverlap(x, y, r, z.rect):
+                z.hp = 0
 
 
     def spawn_vase(self, col: int, row: int, content: int, vase_type) -> Vase:
@@ -80,12 +83,13 @@ class VbGame:
                 ret = self.spawn_zombie(vase.row, vase.content, pos_x=grid_to_pixel(vase.col, vase.row)[0])
             case 'sun':
                 self.sun += vase.content
+                ret = None
             case 'plant':
                 raise NotImplementedError(f"vase_type of {vase} '{vase.vase_type}' not implemented, do u mean 'seed'?")
                 self.spawn_plant(vase.col, vase.row, vase.content)
             case _:
                 raise NotImplementedError(f"Unknown vase type: {vase.vase_type}")
-        self.vases.remove(vase)
+        vase.exist = False
         return ret
 
     def open_vase_in_square(self, col: int, row: int, extend: int = 1) -> None:
@@ -93,7 +97,6 @@ class VbGame:
         for v in self.vases:
             if abs(v.col - col) <= extend and abs(v.row - row) <= extend:
                 self.open_vase(v)
-
 
     def spawn_seed(self, typ: int) -> Seed:
         self.seeds.append(seed := Seed(typ=typ, fade_cd=300))
@@ -115,8 +118,10 @@ class VbGame:
         self.update_zombies()
 
         # 3. 清理死亡植物/僵尸
-        self.plants =  [p for p in self.plants  if p.hp > 0]
+        self.plants  = [p for p in self.plants  if p.hp > 0]
         self.zombies = [z for z in self.zombies if z.hp > 0]
+        self.vases   = [v for v in self.vases   if v.exist]
+        self.seeds   = [s for s in self.seeds   if s.fade_cd > 0]
 
         # 4. 胜利检查
         self.check_win()
@@ -151,7 +156,7 @@ class VbGame:
                             target.deal_damage(plant.launch_damage)
             # 2. 樱桃更新
             elif plant.typ == pt.che and plant.special_cd <= 0:
-                self.kill_in_radius(self.zombies, plant.x, plant.y, r=115, row=plant.row, row_extend=1)
+                self.kill_zombies_in_radius(plant.x, plant.y, r=115, row=plant.row, row_extend=1)
                 plant.hp = 0
             # 3. 土豆更新
             elif plant.typ == pt.min:
@@ -168,8 +173,8 @@ class VbGame:
                                   z.row == plant.row and GetRectOverlap(plant.attack_rect, z.rect) >=
                                   (-30 if z.is_eating else 0)]
                     if attackable:
-                        self.kill_in_radius(self.zombies, plant.x + 20, plant.y + 40,  # aPosX = mX + mWidth / 2 - 20; aPosY = mY + mHeight / 2;
-                                            r=60, row=plant.row, row_extend=1)  # mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags)
+                        self.kill_zombies_in_radius(plant.x + 20, plant.y + 40,  # aPosX = mX + mWidth / 2 - 20; aPosY = mY + mHeight / 2;
+                                                    r=60, row=plant.row, row_extend=1)  # mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags)
                         plant.hp = 0
                 else:
                     raise ValueError(f"Unknown plant state: {plant}")
@@ -211,8 +216,8 @@ class VbGame:
 
     def update_zombies(self):
         for zombie in self.zombies:
-            if zombie.chilled_cd > 0:
-                zombie.chilled_cd -= 1
+            if zombie.special_cd > 0:  zombie.special_cd -= 1
+            if zombie.chilled_cd > 0:  zombie.chilled_cd -= 1
 
             # 找到僵尸的目标植物（同行、在啃食范围内）
             target = None
@@ -230,13 +235,27 @@ class VbGame:
                 if zombie.chilled_cd > 0:
                     speed *= 0.5
                 zombie.x -= speed
-                update_zombie_rects(zombie)
+                zombie.update_rects()
 
             if (zombie.x < -100) or \
                     (zombie.x < -175 and zombie.typ in (zt.ftb, zt.zbn, zt.ctp)) or \
                     (zombie.x < -150 and zombie.typ in (zt.pol, zt.ggt)) or \
                     (zombie.x < -130 and zombie.typ in (zt.dan, zt.dab, zt.snk)):
                 self.lose = True
+
+            # 特判小丑
+            if zombie.typ == zt.jac:
+                if zombie.phase == 'running':
+                    if zombie.special_cd <= 0:
+                        zombie.v = 0
+                        zombie.hp = A_REALLY_BIG_NUMBER  # 视作无敌，忽略樱桃炸丑的可能
+                        zombie.special_cd = 110
+                        zombie.phase = 'popping'
+                elif zombie.phase == 'popping':
+                    if zombie.special_cd <= 0:
+                        self.kill_plants_in_radius(zombie.x + 60, zombie.y + 60, r=90)
+                        self.open_vase_in_square(*pixel_to_grid(zombie.x + 60, zombie.y + 60))
+                        zombie.hp = 0
 
 
 if __name__ == '__main__':
