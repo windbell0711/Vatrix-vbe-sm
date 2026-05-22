@@ -25,7 +25,7 @@ class VbGame:
         return (f"Game(\ntick={self.tick}, sun={self.sun},{' WIN' if self.win else ''}{' LOSE' if self.lose else ''}\n"
                 f"zombies=[{',\n         '.join(map(str, self.zombies))}],\nplants= [{',\n         '.join(map(str, self.plants))}]\nvases=  [{',\n         '.join(map(str, self.vases))}]\n)")
 
-    def spawn_plant(self, col: int, row: int, typ: int) -> Plant:
+    def spawn_plant(self, typ: int, col: int, row: int) -> Plant:
         """生成植物"""
         x, y = grid_to_pixel(col, row)
         plant = Plant(
@@ -38,15 +38,26 @@ class VbGame:
         self.plants.append(plant)
         return plant
 
-    def spawn_zombie(self, row: int, typ: int, pos_x: Optional[float] = None, v: Optional[float] = None) -> Zombie:
+    def spawn_zombie(self, typ: int, row: int, col: Optional[int] = None, pos_x: Optional[float] = None, v: Optional[float] = None) -> Zombie:
         """生成僵尸"""
-        x = pos_x or 780 + random.randint(0, 40)
-        _, y = grid_to_pixel(0, row)
+        if pos_x is not None:
+            assert col is None
+            x = pos_x
+        elif col is not None:
+            assert pos_x is None
+            x = grid_to_pixel(col, row)[0]
+        else:
+            x = {zt.ggt: 845 + random.randint(0, 10),
+                 zt.pol: 870 + random.randint(0, 10),
+                 zt.zbn: 800 + random.randint(0, 10),
+                 zt.ctp: 825 + random.randint(0, 10),
+                 zt.flg: 800 } \
+               .get(typ, 780 + random.randint(0, 40))
         zombie = Zombie(
             typ=typ,
             row=row,
             x=x,
-            y=y,
+            y=grid_to_pixel(0, row)[1],
             v=v,
         )
         self.zombies.append(zombie)
@@ -98,6 +109,12 @@ class VbGame:
             if abs(v.col - col) <= extend and abs(v.row - row) <= extend:
                 self.open_vase(v)
 
+    def find_vase(self, col: int, row: int) -> Optional[Vase]:
+        for v in self.vases:
+            if v.col == col and v.row == row:
+                return v
+        return None
+
     def spawn_seed(self, typ: int) -> Seed:
         self.seeds.append(seed := Seed(typ=typ, fade_cd=300))
         return seed
@@ -124,138 +141,172 @@ class VbGame:
         self.seeds   = [s for s in self.seeds   if s.fade_cd > 0]
 
         # 4. 胜利检查
-        self.check_win()
+        if not self.win and not self.lose:
+            self.check_win()
 
 
     def update_plants(self):
-        for plant in self.plants:
+        for pla in self.plants:
             # 0. 自减cd
-            if plant.special_cd > 0:    plant.special_cd -= 1
-            if plant.launch_rate != -1: plant.launch_cd  -= 1
+            if pla.special_cd > 0:    pla.special_cd -= 1
+            if pla.launch_rate != -1: pla.launch_cd  -= 1
             # 1. 发射逻辑
-            if plant.launch_rate != -1 and plant.launch_cd <= 0:
-                plant.launch_cd = plant.launch_rate  # 初始化发射倒计时
+            if pla.launch_rate != -1 and pla.launch_cd <= 0:
+                pla.launch_cd = pla.launch_rate  # 初始化发射倒计时
                 # 找同行、在攻击范围内、最近（x 最小）的僵尸
                 attackable = [z for z in self.zombies if
-                              z.row == plant.row and GetRectOverlap(plant.attack_rect, z.rect) > 0]
+                              z.row == pla.row and GetRectOverlap(pla.attack_rect, z.rect) > 0]
                 # 实施伤害 & 效果
                 if attackable:
-                    find_maxinimum = max if plant.typ == pt.rre else min
+                    find_maxinimum = max if pla.typ == pt.rre else min
                     target = find_maxinimum(attackable, key=lambda z: z.x)
-                    target.deal_damage(plant.launch_damage)
-                    if plant.typ == pt.sno:
+                    target.deal_damage(pla.launch_damage)
+                    if pla.typ == pt.sno:
                         target.chilled_cd = 200
                 # 特判
-                if plant.typ == pt.thr:  # 三线射手另外两个子弹
+                if pla.typ == pt.thr:  # 三线射手另外两个子弹
                     for dy in (-1, 1):
                         attackable = [z for z in self.zombies if
-                                      z.row == plant.row + dy and GetRectOverlap(
-                                          plant.attack_rect.get_moved(0, dy * CELL_H), z.rect) > 0]
+                                      z.row == pla.row + dy and GetRectOverlap(
+                                          pla.attack_rect.get_moved(0, dy * CELL_H), z.rect) > 0]
                         if attackable:
                             target = min(attackable, key=lambda z: z.x)
-                            target.deal_damage(plant.launch_damage)
+                            target.deal_damage(pla.launch_damage)
             # 2. 樱桃更新
-            elif plant.typ == pt.che and plant.special_cd <= 0:
-                self.kill_zombies_in_radius(plant.x, plant.y, r=115, row=plant.row, row_extend=1)
-                plant.hp = 0
+            elif pla.typ == pt.che and pla.special_cd <= 0:
+                self.kill_zombies_in_radius(pla.x, pla.y, r=115, row=pla.row, row_extend=1)
+                pla.hp = 0
             # 3. 土豆更新
-            elif plant.typ == pt.min:
-                if plant.state == 'not_ready':
-                    if plant.special_cd <= 0:
-                        plant.state = 'rising'
-                        plant.hp = A_REALLY_BIG_NUMBER
-                        plant.special_cd = 106
-                elif plant.state == 'rising':
-                    if plant.special_cd <= 0:
-                        plant.state = 'armed'
-                elif plant.state == 'armed':
+            elif pla.typ == pt.min:
+                if pla.state == 'not_ready':
+                    if pla.special_cd <= 0:
+                        pla.state = 'rising'
+                        pla.hp = A_REALLY_BIG_NUMBER
+                        pla.special_cd = 106
+                elif pla.state == 'rising':
+                    if pla.special_cd <= 0:
+                        pla.state = 'armed'
+                elif pla.state == 'armed':
                     attackable = [z for z in self.zombies if
-                                  z.row == plant.row and GetRectOverlap(plant.attack_rect, z.rect) >=
+                                  z.row == pla.row and GetRectOverlap(pla.attack_rect, z.rect) >=
                                   (-30 if z.is_eating else 0)]
                     if attackable:
-                        self.kill_zombies_in_radius(plant.x + 20, plant.y + 40,  # aPosX = mX + mWidth / 2 - 20; aPosY = mY + mHeight / 2;
-                                                    r=60, row=plant.row, row_extend=1)  # mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags)
-                        plant.hp = 0
+                        self.kill_zombies_in_radius(pla.x + 20, pla.y + 40,  # aPosX = mX + mWidth / 2 - 20; aPosY = mY + mHeight / 2;
+                                                    r=60, row=pla.row, row_extend=1)  # mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags)
+                        pla.hp = 0
                 else:
-                    raise ValueError(f"Unknown plant state: {plant}")
+                    raise ValueError(f"Unknown plant state: {pla}")
             # 5. 倭瓜更新
-            elif plant.typ == pt.squ:
+            elif pla.typ == pt.squ:
                 def find_squ_tar() -> Optional[Zombie]:
                     closest_zom: Optional[Zombie] = None
                     for z in self.zombies:
-                        if (z.row == plant.row and
-                            (GetRectOverlap(plant.attack_rect, closest_zom.rect) if closest_zom else math.inf) > GetRectOverlap(plant.attack_rect, z.rect) >= (-110 if z.is_eating else -70) and
-                            z.rect.x + z.rect.w >= plant.attack_rect.x - 60):
+                        if (z.row == pla.row and
+                            (GetRectOverlap(pla.attack_rect, closest_zom.rect) if closest_zom else math.inf) > GetRectOverlap(pla.attack_rect, z.rect) >= (-110 if z.is_eating else -70) and
+                            z.rect.x + z.rect.w >= pla.attack_rect.x - 60):
                                 closest_zom = z
                     return closest_zom
-                if plant.state == 'not_ready':
+                if pla.state == 'not_ready':
                     if find_squ_tar():
-                        # plant.target_x 不必此处计算
-                        plant.state = "squash_pre_launch"
-                        plant.special_cd = 110
-                elif plant.state == 'squash_pre_launch':
-                    if plant.special_cd <= 0:
-                        if zom := find_squ_tar():
-                            plant.x = (zom.rect.x + zom.rect.w / 2
-                                - 30 * zom.v * (0.5 if zom.chilled_cd > 0 else 1) * (not zom.is_eating)) - 40
-                            plant.y -= 112
-                            plant.state = "squash_rise_and_fall"
-                            plant.special_cd = 60
-                elif plant.state == 'squash_rise_and_fall':
-                    if plant.special_cd == 5:
-                        plant.y += 60
-                        plant.attack_rect = Rect(plant.x + 20, plant.y, 80 - 35, 80)
+                        # plant.target_x 不必在此处计算
+                        pla.state = "squash_pre_launch"
+                        pla.special_cd = 110
+                elif pla.state == 'squash_pre_launch':
+                    if pla.special_cd <= 0:
+                        if zombie := find_squ_tar():
+                            pla.x = (zombie.rect.x + zombie.rect.w / 2
+                                - 30 * zombie.v * (0.5 if zombie.chilled_cd > 0 else 1) * (not zombie.is_eating)) - 40
+                            pla.y -= 112
+                            pla.state = "squash_rise_and_fall"
+                            pla.special_cd = 60
+                elif pla.state == 'squash_rise_and_fall':
+                    if pla.special_cd == 5:
+                        pla.y += 60
+                        pla.attack_rect = Rect(pla.x + 20, pla.y, 80 - 35, 80)
                         for z in self.zombies:
-                            if z.row == plant.row and GetRectOverlap(plant.attack_rect, z.rect) > 0:
+                            if z.row == pla.row and GetRectOverlap(pla.attack_rect, z.rect) > 0:
                                 z.deal_damage(1800)
-                    if plant.special_cd <= 0:
-                        plant.hp = 0
+                    if pla.special_cd <= 0:
+                        pla.hp = 0
                 else:
-                    raise ValueError(f"Unknown plant state: {plant}")
+                    raise ValueError(f"Unknown plant state: {pla}")
 
 
     def update_zombies(self):
-        for zombie in self.zombies:
-            if zombie.special_cd > 0:  zombie.special_cd -= 1
-            if zombie.chilled_cd > 0:  zombie.chilled_cd -= 1
+        for zom in self.zombies:
+            if zom.special_cd > 0:  zom.special_cd -= 1
+            if zom.chilled_cd > 0:  zom.chilled_cd -= 1
 
             # 找到僵尸的目标植物（同行、在啃食范围内）
-            target = None
-            for p in self.plants:
-                if p.row == zombie.row:
-                    if GetRectOverlap(zombie.attack_rect, p.rect) >= 20:
-                        target = p
-                        break
-            if target:
-                zombie.is_eating = True
-                target.hp -= 1  # 简化啃食机制
-            else:
-                zombie.is_eating = False
-                speed = zombie.v
-                if zombie.chilled_cd > 0:
-                    speed *= 0.5
-                zombie.x -= speed
-                zombie.update_rects()
+            def find_target_plant() -> Optional[Plant]:
+                for p in self.plants:
+                    if p.row == zom.row:
+                        if GetRectOverlap(zom.attack_rect, p.rect) >= 20:
+                            return p
+                return None
 
-            if (zombie.x < -100) or \
-                    (zombie.x < -175 and zombie.typ in (zt.ftb, zt.zbn, zt.ctp)) or \
-                    (zombie.x < -150 and zombie.typ in (zt.pol, zt.ggt)) or \
-                    (zombie.x < -130 and zombie.typ in (zt.dan, zt.dab, zt.snk)):
+            if zom.typ != zt.ggt:
+                target_p = find_target_plant()
+                if target_p:
+                    zom.is_eating = True
+                    target_p.hp -= 1  # 简化啃食机制
+                else:
+                    zom.is_eating = False
+                    zom.x -= zom.v * (0.5 if zom.chilled_cd > 0 else 1)
+                    zom.update_rects()
+
+            if (zom.x < -100) or \
+                    (zom.x < -175 and zom.typ in (zt.ftb, zt.zbn, zt.ctp)) or \
+                    (zom.x < -150 and zom.typ in (zt.pol, zt.ggt)) or \
+                    (zom.x < -130 and zom.typ in (zt.dan, zt.dab, zt.snk)):
                 self.lose = True
 
             # 特判小丑
-            if zombie.typ == zt.jac:
-                if zombie.phase == 'running':
-                    if zombie.special_cd <= 0:
-                        zombie.v = 0
-                        zombie.hp = A_REALLY_BIG_NUMBER  # 视作无敌，忽略樱桃炸丑的可能
-                        zombie.special_cd = 110
-                        zombie.phase = 'popping'
-                elif zombie.phase == 'popping':
-                    if zombie.special_cd <= 0:
-                        self.kill_plants_in_radius(zombie.x + 60, zombie.y + 60, r=90)
-                        self.open_vase_in_square(*pixel_to_grid(zombie.x + 60, zombie.y + 60))
-                        zombie.hp = 0
+            if zom.typ == zt.jac:
+                if zom.phase == 'running':
+                    if zom.special_cd <= 0:
+                        zom.v = 0
+                        zom.hp = A_REALLY_BIG_NUMBER  # 视作无敌，忽略樱桃炸丑的可能
+                        zom.special_cd = 110
+                        zom.phase = 'popping'
+                elif zom.phase == 'popping':
+                    if zom.special_cd <= 0:
+                        self.kill_plants_in_radius(zom.x + 60, zom.y + 60, r=90)
+                        self.open_vase_in_square(*pixel_to_grid(zom.x + 60, zom.y + 60))
+                        zom.hp = 0
+                else:
+                    raise ValueError(f"Unknown zombie phase: {zom}")
+
+            # 特判巨人
+            elif zom.typ == zt.ggt:
+                if zom.phase == 'normal':
+                    if find_target_plant() or self.find_vase(*pixel_to_grid(zom.x, zom.y)):
+                        zom.special_cd = 207  # 开始锤击到命中1.34秒，命中到收手0.73秒。
+                        zom.phase = 'smashing'
+                    elif zom.has_object and zom.x > 400 and zom.hp < 3000 / 2:
+                        zom.special_cd = 105  # 开始扔小鬼到小鬼出生1.05秒，小鬼出生到巨人收手0.37秒。
+                        zom.has_object = False
+                        zom.phase = 'throwing'
+                    zom.x -= zom.v * (0.5 if zom.chilled_cd > 0 else 1)  # 巨人移动单独判断
+                    zom.update_rects()
+                elif zom.phase == 'smashing':
+                    if zom.special_cd == 73:
+                        if target_p := find_target_plant():
+                            for p in self.plants:
+                                if p.row == target_p.row and p.col == target_p.col:
+                                    if p.typ != pt.squ:  # 想了想，好像永远砸不掉倭瓜
+                                        p.hp = 0
+                        if target_v := self.find_vase(*pixel_to_grid(zom.x, zom.y)):
+                            self.open_vase(target_v)
+                    elif zom.special_cd <= 0:
+                        zom.phase = 'normal'
+                elif zom.phase == 'throwing':
+                    # 扔出小鬼视为游戏结束，因为我怎么想都觉得这是下下策
+                    if zom.special_cd <= 0:
+                        zom.phase = 'normal'
+                        self.lose = True
+                else:
+                    raise ValueError(f"Unknown zombie phase: {zom}")
 
 
 if __name__ == '__main__':

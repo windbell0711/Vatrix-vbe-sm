@@ -26,13 +26,19 @@ def test():
     # z2 = g.spawn_zombie(row=2, typ=zt.bkt, pos_x=184.8)
     # z1.v = z2.v = 0
 
-    vs = [
-        g.spawn_vase(row=2, col=1, content=zt.bkt, vase_type='zombie'),
-        g.spawn_vase(row=2, col=2, content=zt.jac, vase_type='zombie'),
-        g.spawn_vase(row=2, col=3, content=zt.zom, vase_type='zombie'),
-        g.spawn_vase(row=1, col=2, content=zt.zom, vase_type='zombie'),
-    ]
-    g.open_vase(vs[1])
+    # vs = [
+    #     g.spawn_vase(row=2, col=1, content=zt.bkt, vase_type='zombie'),
+    #     g.spawn_vase(row=2, col=2, content=zt.jac, vase_type='zombie'),
+    #     g.spawn_vase(row=2, col=3, content=zt.zom, vase_type='zombie'),
+    #     g.spawn_vase(row=1, col=2, content=zt.zom, vase_type='zombie'),
+    # ]
+    # g.open_vase(vs[1])
+
+    g.spawn_plant (pt.rep, row=2, col=2)
+    g.spawn_plant (pt.squ, row=2, col=5)
+    g.spawn_plant (pt.squ, row=2, col=4)
+    g.spawn_zombie(zt.ggt, row=2, pos_x=520)
+    g.spawn_zombie(zt.bkt, row=2, col=7)
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 """
 -*- coding: utf-8 -*-
 @Time    : 2026-05-16
-@Github  : 
+@Github  : windbell0711/Vatrix-vbe-sm
 @File    : utils.py
 @Author  : windbell0711
 """
@@ -44,7 +44,7 @@ ZOMBIE_VEL_MAX = {zt.jac: 0.68}
 # special_cd 默认0
 ZOMBIE_SPECIAL_CD = {zt.jac: 10}
 # phase 默认none
-ZOMBIE_PHASE = {zt.jac: 'running'}
+ZOMBIE_PHASE = {zt.jac: 'running', zt.ggt: 'normal'}
 # rects
 ZOMBIE_RECT = {z: Rect(36, 0, 42, 115) for z in (zt.zom, zt.con, zt.bkt)} | \
               {zt.ggt: Rect(-17, -38, 125, 154),
@@ -55,19 +55,20 @@ ZOMBIE_ATT_RECT = {z: Rect(20, 0, 50, 115) for z in (zt.zom, zt.con, zt.bkt)} | 
 
 @dataclass
 class Zombie:
-    typ: int
-    row: int
-    x: float
-    y: float
+    typ    : int
+    row    : int
+    x      : float
+    y      : float
     hp     : int = field(init=False)
     helm_hp: int = field(init=False)
-    v: Optional[float] = None  # inf, -inf 可以控制大小; None 取随机值; nan 取平均值
+    v      : Optional[float] = None  # inf, -inf 可以控制大小; None 取随机值; nan 取平均值
     rect       : Rect = field(init=False)
     attack_rect: Rect = field(init=False)
     special_cd : int  = field(init=False)
     phase      : str  = field(init=False)
-    chilled_cd: int = 0
-    is_eating: bool = False
+    has_object : bool = True
+    chilled_cd : int  = 0
+    is_eating  : bool = False
 
     def initiate_zombie(self) -> None:
         # 1. hp
@@ -75,6 +76,7 @@ class Zombie:
         # 2. helm_hp
         self.helm_hp = ZOMBIE_HELM_HP.get(self.typ, 0)
         # 3. vel
+        self.v: float
         a = ZOMBIE_VEL_MIN.get(self.typ, 0.47 * 0.23)
         b = ZOMBIE_VEL_MAX.get(self.typ, 0.47 * 0.37)
         if self.v is None:
@@ -211,9 +213,11 @@ A_REALLY_BIG_NUMBER = 100000000
 
 # 网格坐标像素坐标转换
 def grid_to_pixel(col: int, row: int) -> tuple[float, float]:
+    """(col, row) -> (x, y)"""
     return col * CELL_W + LAWN_XMIN, row * CELL_H + LAWN_YMIN
 
 def pixel_to_grid(x: float, y: float) -> tuple[int, int]:
+    """(x, y) -> (col, row)"""
     return int((x - LAWN_XMIN) / CELL_W), int((y - LAWN_YMIN) / CELL_H)
 
 
