@@ -41,12 +41,12 @@ def test():
     g.spawn_zombie(zt.bkt, row=2, col=3, v=-engine.math.inf)
 
 
-if __name__ == '__main__':
+def multi_test(loops: int = 500):
     win, tot = 0, 0
-    for _ in range(2000):
+    for _ in range(loops):
         g = engine.VbGame()
         test()
-        cnt = 0
+        # cnt = 0
         while not (g.win or g.lose):
             g.update_game()
             # cnt += 1
@@ -56,3 +56,7 @@ if __name__ == '__main__':
         win += g.win
         tot += 1
     print(f"{win=} / {tot=} = {100*win/tot}%")
+
+
+if __name__ == '__main__':
+    ...
