@@ -237,14 +237,15 @@ class VbGame:
             if zom.special_cd > 0:  zom.special_cd -= 1
             if zom.chilled_cd > 0:  zom.chilled_cd -= 1
 
-            # 找到僵尸的目标植物（同行、在啃食范围内）
             def find_target_plant() -> Optional[Plant]:
+                """找到僵尸的目标植物（啃砸范围内）"""
                 for p in self.plants:
                     if p.row == zom.row:
                         if GetRectOverlap(zom.attack_rect, p.rect) >= 20:
                             return p
                 return None
 
+            # 1. 啃食
             if zom.typ != zt.ggt:
                 target_p = find_target_plant()
                 if target_p:
@@ -252,16 +253,16 @@ class VbGame:
                     target_p.hp -= 1  # 简化啃食机制
                 else:
                     zom.is_eating = False
-                    zom.x -= zom.v * (0.5 if zom.chilled_cd > 0 else 1)
-                    zom.update_rects()
-
-            if (zom.x < -100) or \
-                    (zom.x < -175 and zom.typ in (zt.ftb, zt.zbn, zt.ctp)) or \
-                    (zom.x < -150 and zom.typ in (zt.pol, zt.ggt)) or \
-                    (zom.x < -130 and zom.typ in (zt.dan, zt.dab, zt.snk)):
+            # 2. 移动
+            zom.move_a_tick()
+            zom.update_rects()
+            # 3. 判定僵尸进家
+            if (zom.x < -100 and zom.typ not in (zt.ftb, zt.zbn, zt.ctp, zt.pol, zt.ggt, zt.dan, zt.dab, zt.snk)) or \
+               (zom.x < -175 and zom.typ in (zt.ftb, zt.zbn, zt.ctp)) or \
+               (zom.x < -150 and zom.typ in (zt.pol, zt.ggt)) or \
+               (zom.x < -130 and zom.typ in (zt.dan, zt.dab, zt.snk)):
                 self.lose = True
-
-            # 特判小丑
+            # 4. 特判小丑
             if zom.typ == zt.jac:
                 if zom.phase == 'running':
                     if zom.special_cd <= 0:
@@ -276,8 +277,7 @@ class VbGame:
                         zom.hp = 0
                 else:
                     raise ValueError(f"Unknown zombie phase: {zom}")
-
-            # 特判巨人
+            # 5. 特判巨人
             elif zom.typ == zt.ggt:
                 if zom.phase == 'normal':
                     if (p := find_target_plant()) and p.state != "squash_rise_and_fall" \

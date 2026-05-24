@@ -41,6 +41,16 @@ ZOMBIE_HELM_HP = {zt.con: 370, zt.bkt: 1100}
 # vel   # RandRangeFloat(0.23f, 0.32f)
 ZOMBIE_VEL_MIN = {zt.jac: 0.66}
 ZOMBIE_VEL_MAX = {zt.jac: 0.68}
+ZOMBIE_VEL_LIST = {
+    z: (
+        (1.4, 1.4, 1.4, 1.5, 1.4, 1.4, 1.3, 1.4, 1.4, 1.4, 1.5, 1.4, 0.8, 0.9, 0.9, 0.8, 0.1, 0.2, 0.1, 0.1, 0.0, 0.0, 0.0, 0.0, 2.4, 2.4, 2.3, 2.4, 2.3, 2.4, 2.4, 2.3, 1.2, 1.2, 1.2, 1.1, 1.3, 1.1, 1.2, 1.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1),  # 两手摆动
+        (1.3, 1.2, 1.3, 1.3, 1.3, 1.3, 1.2, 1.2, 1.3, 1.2, 1.3, 1.3, 1.3, 1.3, 1.2, 1.3, 0.1, 0.1, 0.0, 0.1, 0.0, 0.1, 0.1, 1.8, 1.7, 1.8, 1.8, 1.8, 1.7, 1.8, 1.8, 1.8, 1.8, 1.7, 1.8, 1.7, 1.9, 1.7, 1.8, 0.1, 0.0, 0.1, 0.2, 0.1, 0.0, 0.1),  # 两手
+        (0.4, 0.5, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.3, 0.5, 0.5, 0.5, 0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.5, 0.5, 0.5, 0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.5, 0.4),  # dance
+    ) for z in (zt.zom, zt.con, zt.bkt)
+} | {
+    zt.ggt: ((4.5, 4.5, 4.5, 4.4, 4.5, 2.9, 3.0, 3.0, 2.9, 3.0, 4.4, 4.4, 4.4, 4.4, 0.4, 0.5, 0.4, 0.5, 0.4, 1.7, 1.7, 1.7, 1.7, 1.7, 2.4, 2.4, 2.4, 2.4, 2.4, 5.3, 5.4, 5.4, 5.4, 5.4, 4.5, 4.4, 4.5, 4.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.4, 0.2, 0.4, 0.4),),
+    zt.jac: ((0.0, 0.6, 0.6, 0.7, 3.6, 3.6, 1.0, 1.0, 0.0, 0.9, 1.0, 1.0, 1.8, 1.9, 0.0, 0.0, 1.6, 1.6),),
+}
 # special_cd 默认0
 ZOMBIE_SPECIAL_CD = {zt.jac: 10}
 # phase 默认none
@@ -62,6 +72,11 @@ class Zombie:
     hp     : int = field(init=False)
     helm_hp: int = field(init=False)
     v      : Optional[float] = None  # inf, -inf 可以控制大小; None 取随机值; nan 取平均值
+    v_ani_num  : int  = -1
+    v_list     : tuple[float] = field(init=False)
+    v_process  : float = field(init=False)
+    v_delta    : float = field(init=False)
+    v_need_to_repick: bool = field(init=False)
     rect       : Rect = field(init=False)
     attack_rect: Rect = field(init=False)
     special_cd : int  = field(init=False)
@@ -77,20 +92,7 @@ class Zombie:
         self.helm_hp = ZOMBIE_HELM_HP.get(self.typ, 0)
         # 3. vel
         self.v: float
-        a = ZOMBIE_VEL_MIN.get(self.typ, 0.47 * 0.23)
-        b = ZOMBIE_VEL_MAX.get(self.typ, 0.47 * 0.37)
-        if self.v is None:
-            self.v = random.uniform(a, b)
-        elif self.v == math.inf:
-            self.v = b
-        elif self.v == -math.inf:
-            self.v = a
-        elif self.v == math.nan:
-            self.v = (a + b) / 2
-        else:
-            if not self.v or not a <= self.v <= b:
-                raise ValueError(f"{self.typ=} vel={self.v} not in {a=}, {b=}")
-            self.v = float(self.v)
+        self.pick_a_speed(v=self.v, ani_num=self.v_ani_num)
         # 4. rects
         self.update_rects()
         # 5. phase
@@ -103,6 +105,55 @@ class Zombie:
 
     def __post_init__(self) -> None:
         self.initiate_zombie()
+
+    def pick_a_speed(self, v: Optional[float] = None, ani_num: int = -1) -> None:
+        # 1. v
+        a = ZOMBIE_VEL_MIN.get(self.typ, 0.23)
+        b = ZOMBIE_VEL_MAX.get(self.typ, 0.37)
+        if v is None:
+            self.v = random.uniform(a, b)
+        elif v == math.inf:
+            self.v = b
+        elif v == -math.inf:
+            self.v = a
+        elif v == math.nan:
+            self.v = (a + b) / 2
+        else:
+            if not v or not a <= v <= b:
+                raise ValueError(f"{self.typ=} vel={v} not in {a=}, {b=}")
+            self.v = float(v)
+        # 2. ani_num
+        self.v_ani_num = ani_num
+        if self.typ in (zt.zom, zt.con, zt.bkt):
+            if self.v_ani_num == -1:
+                self.v_ani_num = random.choice((0, 1))
+            assert self.v_ani_num in (0, 1, 2)
+        else:
+            if self.v_ani_num == -1:
+                self.v_ani_num = 0
+            assert self.v_ani_num == 0
+        # 3. v_list, v_process, v_delta, v_need_to_repick
+        self.v_list = ZOMBIE_VEL_LIST[self.typ][self.v_ani_num]
+        self.v_process = 0
+        self.v_delta = len(self.v_list) / (sum(self.v_list) / 0.47 / self.v)
+        self.v_need_to_repick = False
+
+    def move_a_tick(self) -> None:
+        if self.is_eating or self.phase in ('popping', 'smashing', 'throwing'):
+            self.v_need_to_repick = True
+            return
+        if self.v_need_to_repick:
+            self.pick_a_speed()
+            return
+        previous_process = self.v_process
+        self.v_process += self.v_delta * (0.5 if self.chilled_cd > 0 else 1)
+        if int(previous_process) == int(self.v_process):
+            return
+        elif int(previous_process) == int(self.v_process) - 1:
+            self.x -= self.v_list[int(previous_process)]
+            self.v_process %= len(self.v_list)
+        else:
+            raise RuntimeError(f"Zombie {self} is moving across two ani frames in one tick, possibly caused by too fast speed {self.v=}. This situation has not been considered and may lead to problems.")
 
     def deal_damage(self, damage: int) -> None:
         """对僵尸造成伤害"""

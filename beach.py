@@ -8,23 +8,11 @@
 import engine
 from consts import *
 
-g = engine.VbGame()
-
-def test():
-    # p = g.spawn_plant(col=0, row=2, typ=pt.min)
-    # p.special_cd = 2
-    # g.spawn_plant(col=7, row=2, typ=pt.rre)
-    # g.spawn_plant(col=1, row=2, typ=pt.nut)
-    # g.spawn_plant(col=7, row=1, typ=pt.che)
-    # g.open_vase(g.spawn_vase(col=2, row=2, content=zt.bkt, vase_type='zombie'))
-    # g.open_vase(g.spawn_vase(col=6, row=1, content=zt.con, vase_type='zombie'))
-    # g.spawn_zombie(row=2, typ=zt.bkt, pos_x=150, v=None)
-    # g.spawn_zombie(row=2, typ=zt.bkt, pos_x=150, v=None)
-
-    # g.spawn_plant(row=2, col=0, typ=pt.squ)
-    # z1 = g.spawn_zombie(row=2, typ=zt.bkt, pos_x=139.9)
-    # z2 = g.spawn_zombie(row=2, typ=zt.bkt, pos_x=184.8)
-    # z1.v = z2.v = 0
+def test(g):
+    g.spawn_plant(col=0, row=2, typ=pt.min).special_cd = 2
+    g.spawn_plant(col=1, row=2, typ=pt.nut).hp = 800
+    g.spawn_zombie(row=2, typ=zt.bkt, pos_x=180, v=None)
+    g.spawn_zombie(row=2, typ=zt.bkt, pos_x=180, v=None)
 
     # vs = [
     #     g.spawn_vase(row=2, col=1, content=zt.bkt, vase_type='zombie'),
@@ -35,17 +23,17 @@ def test():
     # g.open_vase(vs[1])
 
     # g.spawn_plant (pt.rep, row=2, col=2)
-    g.spawn_plant (pt.squ, row=2, col=1)
-    g.spawn_plant (pt.nut, row=2, col=2)
-    g.spawn_zombie(zt.ggt, row=2, col=4, v=engine.math.inf)
-    g.spawn_zombie(zt.bkt, row=2, col=3, v=-engine.math.inf)
+    # g.spawn_plant (pt.squ, row=2, col=1)
+    # g.spawn_plant (pt.nut, row=2, col=2)
+    # g.spawn_zombie(zt.ggt, row=2, col=4, v=engine.math.inf)
+    # g.spawn_zombie(zt.bkt, row=2, col=3, v=-engine.math.inf)
 
 
 def multi_test(loops: int = 500):
     win, tot = 0, 0
     for _ in range(loops):
         g = engine.VbGame()
-        test()
+        test(g)
         # cnt = 0
         while not (g.win or g.lose):
             g.update_game()
@@ -59,4 +47,4 @@ def multi_test(loops: int = 500):
 
 
 if __name__ == '__main__':
-    ...
+    multi_test()

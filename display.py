@@ -6,7 +6,8 @@
 @Author  : windbell0711
 """
 import pygame
-from beach import *
+import engine
+import beach
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 DISPLAY_SPEED = 1
@@ -19,7 +20,8 @@ pygame.display.set_caption("方块正在移动")
 clock = pygame.time.Clock() # 控制帧率
 
 # 2. 创建游戏实例
-test()
+g = engine.VbGame()
+beach.test(g)
 print(g)
 
 # 3. 主循环 (核心)
