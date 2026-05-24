@@ -82,9 +82,9 @@ class Zombie:
         if self.v is None:
             self.v = random.uniform(a, b)
         elif self.v == math.inf:
-            self.v = a
-        elif self.v == -math.inf:
             self.v = b
+        elif self.v == -math.inf:
+            self.v = a
         elif self.v == math.nan:
             self.v = (a + b) / 2
         else:

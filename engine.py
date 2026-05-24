@@ -196,7 +196,7 @@ class VbGame:
                         pla.hp = 0
                 else:
                     raise ValueError(f"Unknown plant state: {pla}")
-            # 5. 倭瓜更新
+            # 5. 窝瓜更新
             elif pla.typ == pt.squ:
                 def find_squ_tar() -> Optional[Zombie]:
                     closest_zom: Optional[Zombie] = None
@@ -280,7 +280,8 @@ class VbGame:
             # 特判巨人
             elif zom.typ == zt.ggt:
                 if zom.phase == 'normal':
-                    if find_target_plant() or self.find_vase(*pixel_to_grid(zom.x, zom.y)):
+                    if (p := find_target_plant()) and p.state != "squash_rise_and_fall" \
+                            or self.find_vase(*pixel_to_grid(zom.x, zom.y)):
                         zom.special_cd = 207  # 开始锤击到命中1.34秒，命中到收手0.73秒。
                         zom.phase = 'smashing'
                     elif zom.has_object and zom.x > 400 and zom.hp < 3000 / 2:
@@ -294,7 +295,7 @@ class VbGame:
                         if target_p := find_target_plant():
                             for p in self.plants:
                                 if p.row == target_p.row and p.col == target_p.col:
-                                    if p.typ != pt.squ:  # 想了想，好像永远砸不掉倭瓜
+                                    if p.typ != pt.squ:  # 想了想，好像永远砸不掉窝瓜
                                         p.hp = 0
                         if target_v := self.find_vase(*pixel_to_grid(zom.x, zom.y)):
                             self.open_vase(target_v)

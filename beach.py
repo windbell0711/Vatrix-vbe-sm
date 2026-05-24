@@ -34,11 +34,11 @@ def test():
     # ]
     # g.open_vase(vs[1])
 
-    g.spawn_plant (pt.rep, row=2, col=2)
-    g.spawn_plant (pt.squ, row=2, col=5)
-    g.spawn_plant (pt.squ, row=2, col=4)
-    g.spawn_zombie(zt.ggt, row=2, pos_x=520)
-    g.spawn_zombie(zt.bkt, row=2, col=7)
+    # g.spawn_plant (pt.rep, row=2, col=2)
+    g.spawn_plant (pt.squ, row=2, col=1)
+    g.spawn_plant (pt.nut, row=2, col=2)
+    g.spawn_zombie(zt.ggt, row=2, col=4, v=engine.math.inf)
+    g.spawn_zombie(zt.bkt, row=2, col=3, v=-engine.math.inf)
 
 
 if __name__ == '__main__':
