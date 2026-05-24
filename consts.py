@@ -77,7 +77,7 @@ class ptc:
     冰 = 寒冰菇 = 14  # Ice-shroom
     毁灭 = 15  # Doom-shroom
     睡莲 = 16  # Lily Pad
-    倭瓜 = 17  # Squash
+    窝瓜 = 17  # Squash
     三线 = 18  # Threepeater
     水草 = 19  # Tangle Kelp
     辣椒 = 20  # Jalapeno
@@ -178,6 +178,6 @@ class ztc:
     坚果僵尸 = 127  # Wall-nut Zombie
     辣椒僵尸 = 128  # Jalapeno Zombie
     机枪僵尸 = 129  # Gatling Pea Zombie
-    倭瓜僵尸 = 130  # Squash Zombie
+    窝瓜僵尸 = 130  # Squash Zombie
     高坚果僵尸 = 131  # Tall-nut Zombie
     红眼 = 红眼巨人 = 132  # Giga-gargantuar
