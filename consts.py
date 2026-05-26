@@ -58,6 +58,7 @@ class pt:
     exn = 48  # Explode-o-nut
     gin = 49  # Giant Wall-nut
     rre = 50  # Reversed Repeater
+    left = 0; right = 50
 
 class ptc:
     豌豆 = 单发 = 0  # Peashooter
@@ -146,6 +147,7 @@ class zt:
     sqz = 130  # Squash Zombie
     taz = 131  # Tall-nut Zombie
     gig = 132  # Giga-gargantuar
+    left = 100; right = 132
 
 class ztc:
     普僵 = 100  # Zombie

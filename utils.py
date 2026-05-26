@@ -116,10 +116,10 @@ class Zombie:
             self.v = b
         elif v == -math.inf:
             self.v = a
-        elif v == math.nan:
+        elif math.isnan(v):
             self.v = (a + b) / 2
         else:
-            if not v or not a <= v <= b:
+            if not a <= v <= b:
                 raise ValueError(f"{self.typ=} vel={v} not in {a=}, {b=}")
             self.v = float(v)
         # 2. ani_num
@@ -244,7 +244,7 @@ class GridItem:
 
 @dataclass
 class Vase(GridItem):
-    vase_type: Literal['seed'] | Literal['zombie'] | Literal['sun']
+    vase_type: Literal['seed', 'zombie', 'sun']
     content: int  # pt.* or zt.* or -1
     transparent: bool = False
     exist: bool = True

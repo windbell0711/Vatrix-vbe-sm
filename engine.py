@@ -5,6 +5,7 @@
 @File    : engine.py
 @Author  : windbell0711
 """
+from typing import Literal, Optional
 from utils import *
 
 
@@ -25,7 +26,7 @@ class VbGame:
         return (f"Game(\ntick={self.tick}, sun={self.sun},{' WIN' if self.win else ''}{' LOSE' if self.lose else ''}\n"
                 f"zombies=[{',\n         '.join(map(str, self.zombies))}],\nplants= [{',\n         '.join(map(str, self.plants))}]\nvases=  [{',\n         '.join(map(str, self.vases))}]\n)")
 
-    def spawn_plant(self, typ: int, col: int, row: int) -> Plant:
+    def spawn_plant(self, typ: int, row: int, col: int) -> Plant:
         """生成植物"""
         x, y = grid_to_pixel(col, row)
         plant = Plant(
@@ -38,8 +39,10 @@ class VbGame:
         self.plants.append(plant)
         return plant
 
-    def spawn_zombie(self, typ: int, row: int, col: Optional[int] = None, pos_x: Optional[float] = None, v: Optional[float] = None) -> Zombie:
+    def spawn_zombie(self, typ: int, row: int, col: Optional[int] = None, pos_x: Optional[float] = None, v: Optional[float] = None, **kwargs) -> Zombie:
         """生成僵尸"""
+        if kwargs:
+            print(f"spawn_zombie got extra args: {kwargs}")
         if pos_x is not None:
             assert col is None
             x = pos_x
@@ -59,6 +62,7 @@ class VbGame:
             x=x,
             y=grid_to_pixel(0, row)[1],
             v=v,
+            **kwargs
         )
         self.zombies.append(zombie)
         return zombie
@@ -69,18 +73,30 @@ class VbGame:
             if GetCircleRectOverlap(x, y, r, p.rect):
                 p.hp = 0
 
-    def kill_zombies_in_radius(self, x: float, y: float, r: float, row: int, row_extend: int) -> None:
+    def kill_zombies_in_radius(self, x: float, y: float, r: float, row: int, row_extend: int, damage: Optional[int] = None) -> None:
         """在指定半径内击杀植物"""
         for z in self.zombies:
             if abs(z.row - row) <= row_extend and GetCircleRectOverlap(x, y, r, z.rect):
-                z.hp = 0
+                if damage is None:
+                    z.hp = 0
+                else:
+                    z.deal_damage(damage)
 
 
-    def spawn_vase(self, col: int, row: int, content: int, vase_type) -> Vase:
+    def spawn_vase(self, content: int, row: int, col: int, vase_type: Optional[Literal['seed', 'zombie', 'sun']] = None) -> Vase:
         """生成罐子"""
+        if vase_type is None:
+            if content == -1:
+                vase_type = 'sun'
+            elif pt.left <= content <= pt.right:
+                vase_type = 'seed'
+            elif zt.left <= content <= zt.right:
+                vase_type = 'zombie'
+            else:
+                raise ValueError(f"Unknown content type: {content}")
         self.vases.append(vase := Vase(
-            col=col,
             row=row,
+            col=col,
             vase_type=vase_type,
             content=content
         ))
@@ -91,13 +107,14 @@ class VbGame:
             case 'seed':
                 ret = self.spawn_seed(vase.content)
             case 'zombie':
-                ret = self.spawn_zombie(vase.row, vase.content, pos_x=grid_to_pixel(vase.col, vase.row)[0])
+                ret = self.spawn_zombie(vase.content, vase.row, pos_x=grid_to_pixel(vase.col, vase.row)[0])
             case 'sun':
-                self.sun += vase.content
+                self.sun += 50
                 ret = None
             case 'plant':
+                # 如果将来需要支持直接种植物，应该这样调用：
+                # self.spawn_plant(typ=vase.content, row=vase.row, col=vase.col)
                 raise NotImplementedError(f"vase_type of {vase} '{vase.vase_type}' not implemented, do u mean 'seed'?")
-                self.spawn_plant(vase.col, vase.row, vase.content)
             case _:
                 raise NotImplementedError(f"Unknown vase type: {vase.vase_type}")
         vase.exist = False
@@ -174,7 +191,7 @@ class VbGame:
                             target.deal_damage(pla.launch_damage)
             # 2. 樱桃更新
             elif pla.typ == pt.che and pla.special_cd <= 0:
-                self.kill_zombies_in_radius(pla.x, pla.y, r=115, row=pla.row, row_extend=1)
+                self.kill_zombies_in_radius(pla.x, pla.y, r=115, row=pla.row, row_extend=1, damage=1800)
                 pla.hp = 0
             # 3. 土豆更新
             elif pla.typ == pt.min:
@@ -192,7 +209,7 @@ class VbGame:
                                   (-30 if z.is_eating else 0)]
                     if attackable:
                         self.kill_zombies_in_radius(pla.x + 20, pla.y + 40,  # aPosX = mX + mWidth / 2 - 20; aPosY = mY + mHeight / 2;
-                                                    r=60, row=pla.row, row_extend=1)  # mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags)
+                                                    r=60, row=pla.row, row_extend=1, damage=1800)  # mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags)
                         pla.hp = 0
                 else:
                     raise ValueError(f"Unknown plant state: {pla}")
@@ -288,13 +305,15 @@ class VbGame:
                         zom.special_cd = 105  # 开始扔小鬼到小鬼出生1.05秒，小鬼出生到巨人收手0.37秒。
                         zom.has_object = False
                         zom.phase = 'throwing'
-                    zom.x -= zom.v * (0.5 if zom.chilled_cd > 0 else 1)  # 巨人移动单独判断
-                    zom.update_rects()
                 elif zom.phase == 'smashing':
                     if zom.special_cd == 73:
                         if target_p := find_target_plant():
                             for p in self.plants:
                                 if p.row == target_p.row and p.col == target_p.col:
+                                    if p.typ == pt.min:  # 特判地雷在被砸的时候爆炸
+                                        self.kill_zombies_in_radius(p.x + 20, p.y + 40, r=60, row=p.row, row_extend=1, damage=1800)
+                                    if p.typ == pt.che:  # 特判樱桃在被砸的时候爆炸
+                                        self.kill_zombies_in_radius(p.x, p.y, r=115, row=p.row, row_extend=1, damage=1800)
                                     if p.typ != pt.squ:  # 想了想，好像永远砸不掉窝瓜
                                         p.hp = 0
                         if target_v := self.find_vase(*pixel_to_grid(zom.x, zom.y)):

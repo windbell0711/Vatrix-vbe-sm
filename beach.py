@@ -8,11 +8,13 @@
 import engine
 from consts import *
 
+from math import inf
+
 def test(g):
-    g.spawn_plant(col=0, row=2, typ=pt.min).special_cd = 2
-    g.spawn_plant(col=1, row=2, typ=pt.nut).hp = 800
-    g.spawn_zombie(row=2, typ=zt.bkt, pos_x=180, v=None)
-    g.spawn_zombie(row=2, typ=zt.bkt, pos_x=180, v=None)
+    # g.spawn_plant(col=0, row=2, typ=pt.min).special_cd = 2
+    # g.spawn_plant(col=1, row=2, typ=pt.nut).hp = 800
+    # g.spawn_zombie(row=2, typ=zt.bkt, pos_x=180, v=None)
+    # g.spawn_zombie(row=2, typ=zt.bkt, pos_x=180, v=None)
 
     # vs = [
     #     g.spawn_vase(row=2, col=1, content=zt.bkt, vase_type='zombie'),
@@ -27,6 +29,18 @@ def test(g):
     # g.spawn_plant (pt.nut, row=2, col=2)
     # g.spawn_zombie(zt.ggt, row=2, col=4, v=engine.math.inf)
     # g.spawn_zombie(zt.bkt, row=2, col=3, v=-engine.math.inf)
+
+    # g.spawn_plant(pt.squ, row=2, col=0)
+    g.spawn_plant(pt.min, row=2, col=1).special_cd = 575
+    g.spawn_zombie(zt.bkt, row=2, col=2)
+    # g.spawn_zombie(zt.bkt, row=2, col=3, v=engine.math.inf, v_ani_num=2)
+    g.spawn_zombie(zt.ggt, row=2, col=4)
+
+    # g.spawn_plant(pt.rre, row=2, col=8)
+    # g.spawn_plant(pt.min, row=2, col=0)
+    # g.spawn_plant(pt.min, row=2, col=1)
+    # g.spawn_zombie(zt.ggt, row=2, col=7)
+
 
 
 def multi_test(loops: int = 500):
