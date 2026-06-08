@@ -30,18 +30,16 @@ def test(g):
     # g.spawn_zombie(zt.ggt, row=2, col=4, v=engine.math.inf)
     # g.spawn_zombie(zt.bkt, row=2, col=3, v=-engine.math.inf)
 
-    # # g.spawn_plant(pt.squ, row=2, col=0)
-    # g.spawn_plant(pt.min, row=2, col=1).special_cd = 575
-    # g.spawn_zombie(zt.bkt, row=2, col=2)
-    # # g.spawn_zombie(zt.bkt, row=2, col=3, v=engine.math.inf, v_ani_num=2)
-    # g.spawn_zombie(zt.ggt, row=2, col=4)
+    # g.spawn_plant(pt.squ, 2, 0)
+    # g.spawn_plant(pt.nut, 2, 1).hp = 600
+    # g.spawn_zombie(zt.bkt, 2, 8)
+    # g.spawn_zombie(zt.bkt, 2, 8)
 
-    g.spawn_plant(pt.squ, 2, 0)
-    g.spawn_plant(pt.nut, 2, 1).hp = 600
-    g.spawn_zombie(zt.bkt, 2, 8)
-    g.spawn_zombie(zt.bkt, 2, 8)
-    # g.spawn_zombie(zt.bkt, 2, 2, v=inf)
-
+    g.spawn_plant(pt.nut, 2, 1)
+    g.spawn_plant(pt.rre, 2, 4)
+    g.spawn_plant(pt.thr, 2, 0)
+    g.spawn_zombie(zt.bkt, 2, 3)
+    g.spawn_zombie(zt.zom, 2, 3)
 
 
 def multi_test(loops: int = 500):

@@ -169,26 +169,27 @@ class VbGame:
             if pla.launch_rate != -1: pla.launch_cd  -= 1
             # 1. 发射逻辑
             if pla.launch_rate != -1 and pla.launch_cd <= 0:
+                def attack(attackable: list[Zombie]):
+                    if attackable:
+                        find_maxinimum = max if pla.typ == pt.rre else min
+                        target = find_maxinimum(attackable, key=lambda z: z.x)
+                        if target.typ == zt.zom:  # 特判，忽略栈位因素，优先索敌铁桶
+                            bkts_besides = [z for z in self.zombies if z.typ == zt.bkt and z.row == pla.row and -1 < z.x - target.x < 1]
+                            if bkts_besides:
+                                target = find_maxinimum(bkts_besides, key=lambda z: z.x)
+                        target.deal_damage(pla.launch_damage)
+                        if pla.typ == pt.sno:
+                            target.chilled_cd = 200
                 pla.launch_cd = pla.launch_rate  # 初始化发射倒计时
                 # 找同行、在攻击范围内、最近（x 最小）的僵尸
-                attackable = [z for z in self.zombies if
-                              z.row == pla.row and GetRectOverlap(pla.attack_rect, z.rect) > 0]
-                # 实施伤害 & 效果
-                if attackable:
-                    find_maxinimum = max if pla.typ == pt.rre else min
-                    target = find_maxinimum(attackable, key=lambda z: z.x)
-                    target.deal_damage(pla.launch_damage)
-                    if pla.typ == pt.sno:
-                        target.chilled_cd = 200
+                attack([z for z in self.zombies if
+                        z.row == pla.row and GetRectOverlap(pla.attack_rect, z.rect) > 0])
                 # 特判
                 if pla.typ == pt.thr:  # 三线射手另外两个子弹
                     for dy in (-1, 1):
-                        attackable = [z for z in self.zombies if
-                                      z.row == pla.row + dy and GetRectOverlap(
-                                          pla.attack_rect.get_moved(0, dy * CELL_H), z.rect) > 0]
-                        if attackable:
-                            target = min(attackable, key=lambda z: z.x)
-                            target.deal_damage(pla.launch_damage)
+                        attack([z for z in self.zombies if
+                                    z.row == pla.row + dy and GetRectOverlap(
+                                    pla.attack_rect.get_moved(0, dy * CELL_H), z.rect) > 0])
             # 2. 樱桃更新
             elif pla.typ == pt.che and pla.special_cd <= 0:
                 self.kill_zombies_in_radius(pla.x, pla.y, r=115, row=pla.row, row_extend=1, damage=1800)
