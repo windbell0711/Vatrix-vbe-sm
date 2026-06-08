@@ -74,7 +74,7 @@ class Zombie:
     v      : Optional[float] = None  # inf, -inf 可以控制大小; None 取随机值; nan 取平均值
     v_ani_num  : int  = -1
     v_list     : tuple[float] = field(init=False)
-    v_process  : float = field(init=False)
+    v_proc     : float = field(init=False)
     v_delta    : float = field(init=False)
     v_need_to_repick: bool = field(init=False)
     rect       : Rect = field(init=False)
@@ -134,8 +134,7 @@ class Zombie:
             assert self.v_ani_num == 0
         # 3. v_list, v_process, v_delta, v_need_to_repick
         self.v_list = ZOMBIE_VEL_LIST[self.typ][self.v_ani_num]
-        self.v_process = 0
-        self.v_delta = len(self.v_list) / (sum(self.v_list) / 0.47 / self.v)
+        self.v_proc = self.v_delta = 0.47 * self.v / sum(self.v_list)
         self.v_need_to_repick = False
 
     def move_a_tick(self) -> None:
@@ -145,15 +144,11 @@ class Zombie:
         if self.v_need_to_repick:
             self.pick_a_speed()
             return
-        previous_process = self.v_process
-        self.v_process += self.v_delta * (0.5 if self.chilled_cd > 0 else 1)
-        if int(previous_process) == int(self.v_process):
-            return
-        elif int(previous_process) == int(self.v_process) - 1:
-            self.x -= self.v_list[int(previous_process)]
-            self.v_process %= len(self.v_list)
-        else:
-            raise RuntimeError(f"Zombie {self} is moving across two ani frames in one tick, possibly caused by too fast speed {self.v=}. This situation has not been considered and may lead to problems.")
+        self.v_proc += self.v_delta * (0.5 if self.chilled_cd > 0 else 1)
+        self.v_proc %= 1
+        current = int(self.v_proc) + 1
+        movement = self.v_list[current] * (len(self.v_list) + 1) * self.v_delta
+        self.x -= movement
 
     def deal_damage(self, damage: int) -> None:
         """对僵尸造成伤害"""
