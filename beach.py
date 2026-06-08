@@ -30,16 +30,17 @@ def test(g):
     # g.spawn_zombie(zt.ggt, row=2, col=4, v=engine.math.inf)
     # g.spawn_zombie(zt.bkt, row=2, col=3, v=-engine.math.inf)
 
-    # g.spawn_plant(pt.squ, row=2, col=0)
-    g.spawn_plant(pt.min, row=2, col=1).special_cd = 575
-    g.spawn_zombie(zt.bkt, row=2, col=2)
-    # g.spawn_zombie(zt.bkt, row=2, col=3, v=engine.math.inf, v_ani_num=2)
-    g.spawn_zombie(zt.ggt, row=2, col=4)
+    # # g.spawn_plant(pt.squ, row=2, col=0)
+    # g.spawn_plant(pt.min, row=2, col=1).special_cd = 575
+    # g.spawn_zombie(zt.bkt, row=2, col=2)
+    # # g.spawn_zombie(zt.bkt, row=2, col=3, v=engine.math.inf, v_ani_num=2)
+    # g.spawn_zombie(zt.ggt, row=2, col=4)
 
-    # g.spawn_plant(pt.rre, row=2, col=8)
-    # g.spawn_plant(pt.min, row=2, col=0)
-    # g.spawn_plant(pt.min, row=2, col=1)
-    # g.spawn_zombie(zt.ggt, row=2, col=7)
+    g.spawn_plant(pt.squ, 2, 0)
+    g.spawn_plant(pt.nut, 2, 1).hp = 600
+    g.spawn_zombie(zt.bkt, 2, 8)
+    g.spawn_zombie(zt.bkt, 2, 8)
+    # g.spawn_zombie(zt.bkt, 2, 2, v=inf)
 
 
 
@@ -48,17 +49,16 @@ def multi_test(loops: int = 500):
     for _ in range(loops):
         g = engine.VbGame()
         test(g)
-        # cnt = 0
         while not (g.win or g.lose):
             g.update_game()
-            # cnt += 1
-            # if cnt % 10 == 0:
-            #     if input():
-            #         print(g)
         win += g.win
         tot += 1
     print(f"{win=} / {tot=} = {100*win/tot}%")
 
 
 if __name__ == '__main__':
-    multi_test()
+    multi_test(10)
+    multi_test(250)
+    # test(g:=engine.VbGame())
+    # for _ in range(479): g.update_game()
+    # print(g)

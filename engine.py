@@ -227,7 +227,7 @@ class VbGame:
                     if find_squ_tar():
                         # plant.target_x 不必在此处计算
                         pla.state = "squash_pre_launch"
-                        pla.special_cd = 110
+                        pla.special_cd = 125
                 elif pla.state == 'squash_pre_launch':
                     if pla.special_cd <= 0:
                         if zombie := find_squ_tar():
