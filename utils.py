@@ -56,12 +56,25 @@ ZOMBIE_SPECIAL_CD = {zt.jac: 10}
 # phase 默认none
 ZOMBIE_PHASE = {zt.jac: 'running', zt.ggt: 'normal'}
 # rects
-ZOMBIE_RECT = {z: Rect(36, 0, 42, 115) for z in (zt.zom, zt.con, zt.bkt)} | \
+ZOMBIE_RECT = {z: Rect(36, 0, 42, 115) for z in (zt.zom, zt.con, zt.bkt, zt.jac)} | \
               {zt.ggt: Rect(-17, -38, 125, 154),
-               zt.jac: Rect(36, 0, 42, 115)}
-ZOMBIE_ATT_RECT = {z: Rect(20, 0, 50, 115) for z in (zt.zom, zt.con, zt.bkt)} | \
+               zt.red: Rect(-17, -38, 125, 154),
+               zt.ftb: Rect(50, 0, 57, 115),
+               zt.dig: Rect(50, 0, 28, 115),
+               zt.bun: Rect(-20, 22, 110, 94),
+               zt.bal: Rect(36, 30, 42, 115),
+               zt.zbn: Rect(0, -13, 153, 140),
+               zt.ctp: Rect(0, -13, 153, 140)}
+ZOMBIE_ATT_RECT = {z: Rect(20, 0, 50, 115) for z in (zt.zom, zt.con, zt.bkt, zt.jac)} | \
+                  {z: Rect(50, 0, 20, 115) for z in (zt.dan, zt.dab, zt.ftb, zt.dig)} | \
                   {zt.ggt: Rect(-30, -38, 89, 154),
-                   zt.jac: Rect(20, 0, 50, 115)}
+                   zt.red: Rect(-30, -38, 89, 154),
+                   zt.lad: Rect(10, 0, 50, 115),
+                   zt.pog: Rect(10, 0, 30, 115),
+                   zt.bun: Rect(0, 0, 0, 0),
+                   zt.bal: Rect(20, 30, 50, 115),
+                   zt.zbn: Rect(10, -13, 133, 140),
+                   zt.ctp: Rect(10, -13, 133, 140)}
 
 @dataclass
 class Zombie:

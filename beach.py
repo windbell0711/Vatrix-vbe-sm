@@ -10,7 +10,7 @@ from consts import *
 
 from math import inf
 
-def test(g):
+def begin(g: engine.VbGame):
     # g.spawn_plant(col=0, row=2, typ=pt.min).special_cd = 2
     # g.spawn_plant(col=1, row=2, typ=pt.nut).hp = 800
     # g.spawn_zombie(row=2, typ=zt.bkt, pos_x=180, v=None)
@@ -35,28 +35,41 @@ def test(g):
     # g.spawn_zombie(zt.bkt, 2, 8)
     # g.spawn_zombie(zt.bkt, 2, 8)
 
-    g.spawn_plant(pt.nut, 2, 1)
-    g.spawn_plant(pt.rre, 2, 4)
-    g.spawn_plant(pt.thr, 2, 0)
-    g.spawn_zombie(zt.bkt, 2, 3)
-    g.spawn_zombie(zt.zom, 2, 3)
+    # g.spawn_plant(pt.nut, 2, 1)
+    # g.spawn_plant(pt.rre, 2, 4)
+    # g.spawn_plant(pt.thr, 2, 0)
+    # g.spawn_zombie(zt.bkt, 2, 3)
+    # g.spawn_zombie(zt.zom, 2, 3)
 
+    g.spawn_vase(row=2, col=3, content=zt.ggt, vase_type='zombie')
+    g.spawn_vase(row=2, col=2, content=zt.bkt, vase_type='zombie')
+    g.spawn_plant(pt.min, 2, 1)
+    g.spawn_plant(pt.squ, 2, 4)
+
+def schedule(g: engine.VbGame):
+    if g.tick == 950:  # 850-1050均可完杀
+        for v in g.vases:
+            if v.col == 3:
+                g.open_vase(v)
 
 def multi_test(loops: int = 500):
     win, tot = 0, 0
     for _ in range(loops):
         g = engine.VbGame()
-        test(g)
+        begin(g)
         while not (g.win or g.lose):
             g.update_game()
+            schedule(g)
         win += g.win
         tot += 1
     print(f"{win=} / {tot=} = {100*win/tot}%")
 
 
 if __name__ == '__main__':
-    multi_test(10)
-    multi_test(250)
-    # test(g:=engine.VbGame())
-    # for _ in range(479): g.update_game()
+    # g = engine.VbGame()
+    # begin(g)
+    # while not (g.win or g.lose):
+    #     g.update_game()
+    #     schedule(g)
     # print(g)
+    multi_test(250)

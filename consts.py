@@ -146,7 +146,7 @@ class zt:
     gaz = 129  # Gatling Pea Zombie
     sqz = 130  # Squash Zombie
     taz = 131  # Tall-nut Zombie
-    gig = 132  # Giga-gargantuar
+    red = 132  # Giga-gargantuar
     left = 100; right = 132
 
 class ztc:

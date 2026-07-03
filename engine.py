@@ -217,16 +217,21 @@ class VbGame:
             # 5. 窝瓜更新
             elif pla.typ == pt.squ:
                 def find_squ_tar() -> Optional[Zombie]:
-                    closest_zom: Optional[Zombie] = None
+                    closest_zom = None
                     for z in self.zombies:
-                        if (z.row == pla.row and
-                            (GetRectOverlap(pla.attack_rect, closest_zom.rect) if closest_zom else math.inf) > GetRectOverlap(pla.attack_rect, z.rect) >= (-110 if z.is_eating else -70) and
-                            z.rect.x + z.rect.w >= pla.attack_rect.x - 60):
+                        if (
+                            z.row == pla.row and
+                            GetRectOverlap(pla.attack_rect, z.rect) >= (-110 if z.is_eating else -70) and
+                            z.rect.x + z.rect.w + 60 >= pla.attack_rect.x
+                        ):
+                            if z is pla.target_zom:
+                                return z
+                            if closest_zom is None or GetRectOverlap(pla.attack_rect, z.rect) > GetRectOverlap(pla.attack_rect, closest_zom.rect):
                                 closest_zom = z
                     return closest_zom
                 if pla.state == 'not_ready':
-                    if find_squ_tar():
-                        # plant.target_x 不必在此处计算
+                    if zombie := find_squ_tar():
+                        pla.target_zom = zombie  # plant.target_x 不必在此处计算
                         pla.state = "squash_pre_launch"
                         pla.special_cd = 125
                 elif pla.state == 'squash_pre_launch':

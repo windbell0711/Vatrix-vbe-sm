@@ -21,7 +21,7 @@ clock = pygame.time.Clock() # 控制帧率
 
 # 2. 创建游戏实例
 g = engine.VbGame()
-beach.test(g)
+beach.begin(g)
 print(g)
 
 # 3. 主循环 (核心)
@@ -34,6 +34,7 @@ while running:
 
     # --- 游戏逻辑更新---
     g.update_game() # 调用你的逻辑
+    beach.schedule(g)
 
     # --- 绘图 (渲染) ---
     screen.fill((0, 0, 0)) # 填充背景色 (黑色)
